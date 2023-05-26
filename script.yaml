@@ -1,0 +1,37 @@
+---
+- name: Configuration Apache2
+  hosts: servers
+  become: true
+  tasks:
+    - name: Installation d'Apache2
+      apt:
+        name: apache2
+        state: present
+
+    - name: Configuration des sites
+      template:
+        src: templates/site.conf.j2
+        dest: /etc/apache2/sites-available/{{ item.name }}.conf
+      with_items:
+        - { name: "site1", domain: "site1.com", document_root: "/var/www/site1" }
+        - { name: "site2", domain: "site2.com", document_root: "/var/www/site2" }
+        - { name: "site3", domain: "site3.com", document_root: "/var/www/site3" }
+      notify:
+        - Enable site
+
+  handlers:
+    - name: Enable site
+      command: a2ensite {{ item.name }}.conf
+      args:
+        chdir: /etc/apache2/sites-available
+      with_items:
+        - { name: "site1" }
+        - { name: "site2" }
+        - { name: "site3" }
+      notify:
+        - Restart Apache
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
